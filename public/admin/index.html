@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI工具导航 - 管理后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<!-- 登录页 -->
+<div id="loginPage" class="min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-2xl shadow-lg w-96">
+    <h1 class="text-2xl font-bold text-center mb-6">🔧 管理后台登录</h1>
+    <input id="passwordInput" type="password" placeholder="请输入管理密码"
+      class="w-full px-4 py-3 border rounded-lg mb-4 focus:ring-2 focus:ring-blue-500 outline-none"
+      onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium">登 录</button>
+    <p id="loginError" class="text-red-500 text-sm mt-2 text-center hidden">密码错误</p>
+  </div>
+</div>
+
+<!-- 管理页面 -->
+<div id="adminPage" class="hidden">
+  <!-- 顶部导航 -->
+  <nav class="bg-white shadow-sm border-b sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl font-bold">🔧 AI工具导航 - 管理后台</h1>
+      <div class="flex items-center gap-3">
+        <a href="/" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm">← 查看前台</a>
+        <button onclick="showChangePassword()" class="text-gray-500 hover:text-gray-700 text-sm">修改密码</button>
+        <button onclick="logout()" class="text-red-500 hover:text-red-700 text-sm">退出</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- 操作栏 -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <input id="searchInput" type="text" placeholder="搜索工具名称..."
+          class="px-4 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+          oninput="renderTools()">
+        <select id="filterCategory" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          onchange="renderTools()">
+          <option value="">全部分类</option>
+        </select>
+      </div>
+      <button onclick="showAddModal()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition font-medium">+ 添加工具</button>
+    </div>
+
+    <!-- 统计 -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl shadow-sm border text-center">
+        <div id="statTotal" class="text-2xl font-bold text-blue-600">0</div>
+        <div class="text-gray-500 text-sm">工具总数</div>
+      </div>
+      <div id="statCategories" class="bg-white p-4 rounded-xl shadow-sm border text-center">
+        <div class="text-2xl font-bold text-green-600">0</div>
+        <div class="text-gray-500 text-sm">分类数</div>
+      </div>
+    </div>
+
+    <!-- 工具列表 -->
+    <div id="toolsList" class="space-y-3"></div>
+  </div>
+</div>
+
+<!-- 添加/编辑模态框 -->
+<div id="toolModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+    <h2 id="modalTitle" class="text-xl font-bold mb-4">添加工具</h2>
+    <input type="hidden" id="editId">
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">名称 *</label>
+        <input id="toolName" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="例如：ChatGPT">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">网址 *</label>
+        <input id="toolUrl" type="url" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://...">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">图标Emoji</label>
+          <input id="toolIcon" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-center text-2xl" placeholder="🔧" maxlength="4">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">分类</label>
+          <input id="toolCategory" type="text" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="例如：文本生成" list="categoryList">
+          <datalist id="categoryList"></datalist>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+        <textarea id="toolDesc" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="简要描述这个工具的功能..."></textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeModal()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition">取消</button>
+      <button onclick="saveTool()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div id="pwdModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+    <h2 class="text-xl font-bold mb-4">修改密码</h2>
+    <div class="space-y-4">
+      <input id="oldPwd" type="password" placeholder="原密码" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+      <input id="newPwd" type="password" placeholder="新密码（至少4位）" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+      <input id="newPwd2" type="password" placeholder="确认新密码" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closePwdModal()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition">取消</button>
+      <button onclick="changePassword()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('admin_token') || '';
+let allTools = [];
+
+// 自动登录
+if (token) {
+  showAdmin();
+}
+
+async function login() {
+  const pwd = document.getElementById('passwordInput').value;
+  if (!pwd) return;
+  const res = await fetch(API + '/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pwd })
+  });
+  const data = await res.json();
+  if (data.success) {
+    token = data.token;
+    localStorage.setItem('admin_token', token);
+    showAdmin();
+  } else {
+    document.getElementById('loginError').classList.remove('hidden');
+  }
+}
+
+function logout() {
+  token = '';
+  localStorage.removeItem('admin_token');
+  document.getElementById('adminPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+}
+
+function showAdmin() {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('adminPage').classList.remove('hidden');
+  loadTools();
+}
+
+async function loadTools() {
+  const res = await fetch(API + '/api/tools');
+  const data = await res.json();
+  if (data.success) {
+    allTools = data.data;
+    renderTools();
+    renderCategories();
+    renderStats();
+  }
+}
+
+function renderTools() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const filterCat = document.getElementById('filterCategory').value;
+  const filtered = allTools.filter(t => {
+    const matchSearch = !search || t.name.toLowerCase().includes(search) || t.description.toLowerCase().includes(search);
+    const matchCat = !filterCat || t.category === filterCat;
+    return matchSearch && matchCat;
+  });
+
+  const list = document.getElementById('toolsList');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="text-center text-gray-400 py-12">暂无数据</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(t => `
+    <div class="bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4 hover:shadow-md transition">
+      <div class="text-3xl">${t.icon}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <h3 class="font-semibold text-gray-900 truncate">${t.name}</h3>
+          <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded shrink-0">${t.category}</span>
+        </div>
+        <p class="text-gray-500 text-sm truncate">${t.description || '无描述'}</p>
+        <a href="${t.url}" target="_blank" class="text-blue-500 text-xs hover:underline">${t.url}</a>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="showEditModal('${t.id}')" class="px-3 py-1.5 text-sm bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition">编辑</button>
+        <button onclick="deleteTool('${t.id}','${t.name}')" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition">删除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCategories() {
+  const cats = [...new Set(allTools.map(t => t.category))];
+  const select = document.getElementById('filterCategory');
+  const datalist = document.getElementById('categoryList');
+  select.innerHTML = '<option value="">全部分类</option>' + cats.map(c => `<option value="${c}">${c} (${allTools.filter(t=>t.category===c).length})</option>`).join('');
+  datalist.innerHTML = cats.map(c => `<option value="${c}">`).join('');
+}
+
+function renderStats() {
+  document.getElementById('statTotal').textContent = allTools.length;
+  const cats = new Set(allTools.map(t => t.category));
+  document.querySelector('#statCategories .text-2xl').textContent = cats.size;
+}
+
+function showAddModal() {
+  document.getElementById('modalTitle').textContent = '添加工具';
+  document.getElementById('editId').value = '';
+  document.getElementById('toolName').value = '';
+  document.getElementById('toolUrl').value = '';
+  document.getElementById('toolIcon').value = '';
+  document.getElementById('toolCategory').value = '';
+  document.getElementById('toolDesc').value = '';
+  document.getElementById('toolModal').classList.remove('hidden');
+}
+
+function showEditModal(id) {
+  const tool = allTools.find(t => t.id === id);
+  if (!tool) return;
+  document.getElementById('modalTitle').textContent = '编辑工具';
+  document.getElementById('editId').value = id;
+  document.getElementById('toolName').value = tool.name;
+  document.getElementById('toolUrl').value = tool.url;
+  document.getElementById('toolIcon').value = tool.icon;
+  document.getElementById('toolCategory').value = tool.category;
+  document.getElementById('toolDesc').value = tool.description;
+  document.getElementById('toolModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('toolModal').classList.add('hidden');
+}
+
+async function saveTool() {
+  const id = document.getElementById('editId').value;
+  const payload = {
+    name: document.getElementById('toolName').value,
+    url: document.getElementById('toolUrl').value,
+    icon: document.getElementById('toolIcon').value,
+    category: document.getElementById('toolCategory').value,
+    description: document.getElementById('toolDesc').value,
+  };
+  if (!payload.name || !payload.url) { alert('名称和网址必填'); return; }
+
+  const url = id ? `/api/admin/tools?id=${id}` : '/api/admin/tools';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(API + url, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.success) {
+    closeModal();
+    loadTools();
+  } else {
+    alert(data.error || '操作失败');
+  }
+}
+
+async function deleteTool(id, name) {
+  if (!confirm(`确定删除「${name}」？`)) return;
+  const res = await fetch(API + `/api/admin/tools?id=${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const data = await res.json();
+  if (data.success) {
+    loadTools();
+  } else {
+    alert(data.error || '删除失败');
+  }
+}
+
+function showChangePassword() { document.getElementById('pwdModal').classList.remove('hidden'); }
+function closePwdModal() { document.getElementById('pwdModal').classList.add('hidden'); }
+
+async function changePassword() {
+  const oldPwd = document.getElementById('oldPwd').value;
+  const newPwd = document.getElementById('newPwd').value;
+  const newPwd2 = document.getElementById('newPwd2').value;
+  if (!oldPwd || !newPwd) { alert('请填写完整'); return; }
+  if (newPwd !== newPwd2) { alert('两次密码不一致'); return; }
+  if (newPwd.length < 4) { alert('新密码至少4位'); return; }
+  const res = await fetch(API + '/api/admin/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd })
+  });
+  const data = await res.json();
+  if (data.success) {
+    token = newPwd;
+    localStorage.setItem('admin_token', token);
+    alert('密码修改成功！');
+    closePwdModal();
+  } else {
+    alert(data.error || '修改失败');
+  }
+}
+</script>
+</body>
+</html>
